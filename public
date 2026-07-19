@@ -1,404 +1,533 @@
-* { margin: 0; padding: 0; box-sizing: border-box; }
-:root {
-  --primary: #1a5fb4; --primary-dark: #1c4f94; --primary-light: #e8f0fe;
-  --accent: #ff6b35; --accent-light: #fff3ed;
-  --success: #2e7d32; --success-light: #e8f5e9;
-  --warning: #f57c00; --danger: #c62828;
-  --dark: #1a1a2e; --gray-900: #2d2d3a; --gray-700: #4a4a5a;
-  --gray-500: #7a7a8a; --gray-300: #c0c0cc; --gray-100: #f0f0f5;
-  --white: #ffffff; --shadow: 0 2px 8px rgba(0,0,0,0.08);
-  --shadow-lg: 0 4px 16px rgba(0,0,0,0.12);
-  --radius: 12px; --radius-sm: 8px;
-}
-html { font-size: 16px; -webkit-text-size-adjust: 100%; }
-body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  background: var(--gray-100); color: var(--dark); line-height: 1.5;
-  min-height: 100vh; overflow-x: hidden;
-}
-.hidden { display: none !important; }
-.screen { display: none; min-height: 100vh; }
-.screen.active { display: flex; flex-direction: column; }
-.content-screen { display: none; padding: 16px; padding-bottom: 100px; min-height: calc(100vh - 120px); }
-.content-screen.active { display: block; }
+const API_URL = '';
+let currentUser = null;
+let currentToken = null;
+let currentReportId = null;
+let currentClients = [];
+let currentClientId = null;
 
-/* LOGIN */
-#login-screen {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-  justify-content: center; align-items: center; padding: 24px;
-}
-.login-container { width: 100%; max-width: 360px; }
-.logo { text-align: center; margin-bottom: 40px; color: var(--white); }
-.logo-icon { font-size: 64px; margin-bottom: 8px; }
-.logo h1 { font-size: 32px; font-weight: 700; letter-spacing: 2px; }
-.logo p { font-size: 14px; opacity: 0.8; letter-spacing: 4px; }
-.login-form {
-  background: var(--white); padding: 28px; border-radius: var(--radius);
-  box-shadow: var(--shadow-lg);
-}
-.input-group { margin-bottom: 16px; }
-.input-group label {
-  display: block; font-size: 13px; font-weight: 600;
-  color: var(--gray-700); margin-bottom: 6px;
-  text-transform: uppercase; letter-spacing: 0.5px;
-}
-.input-group input {
-  width: 100%; padding: 14px 16px; border: 2px solid var(--gray-100);
-  border-radius: var(--radius-sm); font-size: 16px;
-  transition: border-color 0.2s; font-family: inherit;
-}
-.input-group input:focus { outline: none; border-color: var(--primary); }
-.btn-primary {
-  width: 100%; padding: 16px; background: var(--primary); color: var(--white);
-  border: none; border-radius: var(--radius-sm); font-size: 16px; font-weight: 600;
-  cursor: pointer; transition: all 0.2s;
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-}
-.btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); }
-.btn-primary:active { transform: translateY(0); }
-.login-hint {
-  text-align: center; color: rgba(255,255,255,0.7);
-  font-size: 12px; margin-top: 20px; line-height: 1.6;
+function init() {
+    const token = localStorage.getItem('nuronis_token');
+    if (token) {
+        currentToken = token;
+        const user = JSON.parse(localStorage.getItem('nuronis_user') || '{}');
+        currentUser = user;
+        showApp();
+        loadDashboard();
+    } else {
+        showLogin();
+    }
 }
 
-/* HEADER */
-.app-header {
-  background: var(--white); padding: 12px 16px;
-  display: flex; justify-content: space-between; align-items: center;
-  box-shadow: var(--shadow); position: sticky; top: 0; z-index: 100;
-}
-.header-left { display: flex; align-items: center; gap: 8px; }
-.logo-small { font-size: 24px; }
-.header-title { font-weight: 700; font-size: 16px; color: var(--primary); letter-spacing: 1px; }
-.header-right { display: flex; align-items: center; gap: 12px; }
-.user-name { font-size: 13px; color: var(--gray-700); font-weight: 500; }
-.btn-icon { background: none; border: none; font-size: 20px; cursor: pointer; padding: 4px; }
-
-/* NAV */
-.app-nav {
-  position: fixed; bottom: 0; left: 0; right: 0; background: var(--white);
-  display: flex; justify-content: space-around; padding: 8px 0;
-  box-shadow: 0 -2px 8px rgba(0,0,0,0.08); z-index: 100;
-}
-.nav-item {
-  background: none; border: none; display: flex; flex-direction: column;
-  align-items: center; gap: 2px; padding: 4px 16px;
-  cursor: pointer; color: var(--gray-500); transition: color 0.2s;
-}
-.nav-item span { font-size: 22px; }
-.nav-item small { font-size: 11px; font-weight: 500; }
-.nav-item.active { color: var(--primary); }
-
-/* DASHBOARD */
-.dashboard-header { margin-bottom: 20px; }
-.dashboard-header h2 { font-size: 22px; font-weight: 700; }
-.dashboard-subtitle { color: var(--gray-500); font-size: 14px; margin-top: 2px; }
-.stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px; }
-.stat-card {
-  background: var(--white); padding: 16px; border-radius: var(--radius);
-  box-shadow: var(--shadow); text-align: center;
-}
-.stat-card.highlight {
-  background: linear-gradient(135deg, var(--success-light) 0%, var(--white) 100%);
-  border: 2px solid var(--success);
-}
-.stat-icon { font-size: 28px; margin-bottom: 4px; }
-.stat-value { font-size: 28px; font-weight: 700; color: var(--dark); }
-.stat-card.highlight .stat-value { color: var(--success); }
-.stat-label { font-size: 12px; color: var(--gray-500); font-weight: 500; }
-
-.sorteio-card {
-  background: linear-gradient(135deg, var(--accent-light) 0%, var(--white) 100%);
-  border: 2px solid var(--accent); border-radius: var(--radius);
-  padding: 16px; margin-bottom: 20px;
-}
-.sorteio-header {
-  display: flex; justify-content: space-between; align-items: center;
-  margin-bottom: 12px; font-weight: 600; color: var(--accent);
-}
-.sorteio-tickets {
-  background: var(--accent); color: var(--white);
-  padding: 4px 12px; border-radius: 20px; font-size: 13px;
-}
-.progress-bar {
-  height: 8px; background: var(--gray-100); border-radius: 4px;
-  overflow: hidden; margin-bottom: 6px;
-}
-.progress-fill {
-  height: 100%; background: var(--accent); border-radius: 4px;
-  transition: width 0.5s ease;
+function showLogin() {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('login-screen').classList.add('active');
 }
 
-.btn-action {
-  width: 100%; padding: 16px; background: var(--primary); color: var(--white);
-  border: none; border-radius: var(--radius); font-size: 16px; font-weight: 600;
-  cursor: pointer; display: flex; align-items: center; justify-content: center;
-  gap: 8px; margin-bottom: 24px; box-shadow: var(--shadow);
-}
-.btn-action:hover { background: var(--primary-dark); }
-
-.section-title {
-  font-size: 14px; font-weight: 700; color: var(--gray-700);
-  margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;
+function showApp() {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('app-screen').classList.add('active');
+    document.getElementById('user-name').textContent = currentUser?.nome || 'Gerente';
+    document.getElementById('dash-name').textContent = currentUser?.nome?.split(' ')[0] || 'Gerente';
+    showScreen('dashboard');
 }
 
-.reports-list { display: flex; flex-direction: column; gap: 10px; }
-.report-card {
-  background: var(--white); border-radius: var(--radius-sm);
-  padding: 16px; box-shadow: var(--shadow); cursor: pointer;
-  transition: transform 0.2s;
-}
-.report-card:hover { transform: translateX(4px); }
-.report-card-header {
-  display: flex; justify-content: space-between; align-items: center;
-  margin-bottom: 8px;
-}
-.report-card-title { font-weight: 600; font-size: 15px; }
-.report-card-date { font-size: 12px; color: var(--gray-500); }
-.report-card-stats {
-  display: flex; gap: 16px; font-size: 13px; color: var(--gray-500);
-}
-.report-card-stats span { display: flex; align-items: center; gap: 4px; }
-
-.empty-state { text-align: center; padding: 40px 20px; color: var(--gray-500); }
-.empty-state span { font-size: 48px; display: block; margin-bottom: 12px; }
-.empty-state p { font-weight: 600; margin-bottom: 4px; }
-.empty-state small { font-size: 13px; }
-/* UPLOAD */
-.upload-card {
-  background: var(--white); border-radius: var(--radius);
-  padding: 20px; box-shadow: var(--shadow); margin-bottom: 24px;
-}
-.upload-card h3 { font-size: 18px; margin-bottom: 4px; }
-.upload-card p { color: var(--gray-500); font-size: 14px; margin-bottom: 16px; }
-.upload-card input, .upload-card textarea {
-  width: 100%; padding: 14px; border: 2px solid var(--gray-100);
-  border-radius: var(--radius-sm); font-size: 15px;
-  font-family: inherit; margin-bottom: 12px;
-}
-.upload-card textarea { min-height: 160px; resize: vertical; line-height: 1.6; }
-.upload-card input:focus, .upload-card textarea:focus {
-  outline: none; border-color: var(--primary);
+function logout() {
+    localStorage.removeItem('nuronis_token');
+    localStorage.removeItem('nuronis_user');
+    currentUser = null;
+    currentToken = null;
+    showLogin();
 }
 
-/* CLIENTS LIST */
-.screen-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
-.screen-header h2 { font-size: 20px; }
-.btn-back {
-  background: var(--gray-100); border: none; width: 36px; height: 36px;
-  border-radius: 50%; font-size: 18px; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-}
-.filters {
-  display: flex; gap: 8px; margin-bottom: 16px;
-  overflow-x: auto; padding-bottom: 4px;
-}
-.filter-btn {
-  background: var(--white); border: 2px solid var(--gray-100);
-  padding: 8px 16px; border-radius: 20px; font-size: 13px;
-  font-weight: 600; cursor: pointer; white-space: nowrap;
-  transition: all 0.2s;
-}
-.filter-btn.active { background: var(--primary); color: var(--white); border-color: var(--primary); }
+document.getElementById('login-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const cpf = document.getElementById('cpf').value.replace(/\D/g, '');
+    const senha = document.getElementById('senha').value;
+    
+    const btn = e.target.querySelector('button');
+    btn.disabled = true;
+    
+    try {
+        const res = await fetch('/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cpf, senha })
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok) {
+            currentToken = data.token;
+            currentUser = data.user;
+            localStorage.setItem('nuronis_token', data.token);
+            localStorage.setItem('nuronis_user', JSON.stringify(data.user));
+            showApp();
+            loadDashboard();
+            showToast(Bem-vindo, ${data.user.nome}!);
+        } else {
+            showToast(data.error || 'Erro no login', 'error');
+        }
+    } catch (err) {
+        showToast('Erro de conexão', 'error');
+    } finally {
+        btn.disabled = false;
+    }
+});
 
-.clients-list { display: flex; flex-direction: column; gap: 10px; }
-.client-card {
-  background: var(--white); border-radius: var(--radius-sm);
-  padding: 16px; box-shadow: var(--shadow); cursor: pointer;
-  transition: all 0.2s; border-left: 4px solid var(--gray-300);
+function showScreen(screenName) {
+    document.querySelectorAll('.content-screen').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    
+    document.getElementById(${screenName}-screen)?.classList.add('active');
+    document.querySelector([data-screen="${screenName}"])?.classList.add('active');
+    
+    if (screenName === 'dashboard') loadDashboard();
+    if (screenName === 'reports') loadReports();
+    if (screenName === 'ranking') loadRanking();
 }
-.client-card:hover { transform: translateX(4px); box-shadow: var(--shadow-lg); }
-.client-card.prioridade-hoje {
-  border-left-color: var(--danger);
-  background: linear-gradient(90deg, #fff5f5 0%, var(--white) 100%);
-}
-.client-card.prioridade-semana {
-  border-left-color: var(--warning);
-  background: linear-gradient(90deg, #fff8e1 0%, var(--white) 100%);
-}
-.client-card.prioridade-mes { border-left-color: var(--primary); }
 
-.client-card-header {
-  display: flex; justify-content: space-between; align-items: flex-start;
-  margin-bottom: 8px;
+async function loadDashboard() {
+    try {
+        const res = await fetch('/api/dashboard', {
+            headers: { 'Authorization': Bearer ${currentToken} }
+        });
+        const data = await res.json();
+        
+        if (res.ok) {
+            document.getElementById('stat-relatorios').textContent = data.stats?.total_relatorios || 0;
+            document.getElementById('stat-clientes').textContent = data.stats?.total_clientes || 0;
+            document.getElementById('stat-contactados').textContent = data.stats?.contactados || 0;
+            document.getElementById('stat-vendas').textContent = data.stats?.vendas || 0;
+            document.getElementById('dash-tickets').textContent = ${data.stats?.total_tickets || 0} tickets;
+            
+            const progress = Math.min(100, ((data.stats?.total_tickets || 0) / 20) * 100);
+            document.getElementById('progress-fill').style.width = ${progress}%;
+            
+            const reportsContainer = document.getElementById('recent-reports');
+            if (data.reports && data.reports.length > 0) {
+                reportsContainer.innerHTML = data.reports.slice(0, 3).map(r => `
+                    <div class="report-card" onclick="openReport(${r.id}, '${r.nome}')">
+                        <div class="report-card-header">
+                            <span class="report-card-title">${r.nome}</span>
+                            <span class="report-card-date">${formatDate(r.data_upload)}</span>
+                        </div>
+                        <div class="report-card-stats">
+                            <span>👥 ${r.total_clientes} clientes</span>
+                            <span>⏳ ${r.pendentes || 0} pendentes</span>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+    } catch (err) {
+        console.error('Erro dashboard:', err);
+    }
 }
-.client-name { font-weight: 600; font-size: 15px; }
-.client-score { font-size: 18px; font-weight: 700; }
-.client-score.alto { color: var(--danger); }
-.client-score.medio { color: var(--warning); }
-.client-info {
-  display: flex; flex-wrap: wrap; gap: 8px;
-  font-size: 13px; color: var(--gray-500); margin-bottom: 8px;
-}
-.client-badge {
-  display: inline-block; padding: 3px 10px;
-  border-radius: 12px; font-size: 11px; font-weight: 600;
-}
-.badge-arquetipo { background: var(--primary-light); color: var(--primary); }
-.badge-prioridade-hoje { background: #ffebee; color: var(--danger); }
-.badge-prioridade-semana { background: #fff3e0; color: var(--warning); }
-.client-phone { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--primary); font-weight: 500; }
 
-/* CLIENT DETAIL */
-#client-detail-content {
-  background: var(--white); border-radius: var(--radius);
-  overflow: hidden; box-shadow: var(--shadow);
+async function loadReports() {
+    try {
+        const res = await fetch('/api/reports', {
+            headers: { 'Authorization': Bearer ${currentToken} }
+        });
+        const reports = await res.json();
+        
+        const container = document.getElementById('all-reports');
+        if (reports.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <span>📭</span>
+                    <p>Nenhum relatório ainda</p>
+                    <small>Coloque seu primeiro relatório acima</small>
+                </div>
+            `;
+        } else {
+            container.innerHTML = reports.map(r => `
+                <div class="report-card" onclick="openReport(${r.id}, '${r.nome}')">
+                    <div class="report-card-header">
+                        <span class="report-card-title">${r.nome}</span>
+                        <span class="report-card-date">${formatDate(r.data_upload)}</span>
+                    </div>
+                    <div class="report-card-stats">
+                        <span>👥 ${r.total_clientes} clientes</span>
+                        <span>⏳ ${r.pendentes || 0} pendentes</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+    } catch (err) {
+        console.error('Erro reports:', err);
+    }
 }
-.client-detail-header {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-  color: var(--white); padding: 20px;
-}
-.client-detail-header h3 { font-size: 20px; margin-bottom: 4px; }
-.client-detail-meta {
-  display: flex; flex-wrap: wrap; gap: 12px;
-  margin-top: 12px; font-size: 13px; opacity: 0.9;
-}
-.client-detail-body { padding: 20px; }
-.roteiro-section { margin-bottom: 24px; }
-.roteiro-section h4 {
-  font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;
-  color: var(--gray-500); margin-bottom: 10px;
-}
-.roteiro-box {
-  background: var(--gray-100); border-radius: var(--radius-sm);
-  padding: 16px; position: relative;
-}
-.roteiro-text { font-size: 15px; line-height: 1.6; color: var(--gray-900); }
-.btn-copy {
-  position: absolute; top: 8px; right: 8px;
-  background: var(--white); border: none;
-  padding: 6px 12px; border-radius: var(--radius-sm);
-  font-size: 12px; font-weight: 600; color: var(--primary);
-  cursor: pointer; box-shadow: var(--shadow);
-}
-.pergunta-box {
-  background: var(--primary-light); border-radius: var(--radius-sm);
-  padding: 14px 16px; margin-bottom: 10px;
-  border-left: 4px solid var(--primary);
-}
-.pergunta-box p { font-size: 15px; font-weight: 500; color: var(--primary-dark); }
-.objecao-box {
-  background: var(--accent-light); border-radius: var(--radius-sm);
-  padding: 14px 16px; margin-bottom: 10px;
-  border-left: 4px solid var(--accent);
-}
-.objecao-box .objecao-label {
-  font-size: 11px; font-weight: 700; text-transform: uppercase;
-  color: var(--accent); margin-bottom: 4px;
-}
-.objecao-box p { font-size: 15px; color: var(--gray-900); }
 
-.resultado-form {
-  margin-top: 24px; padding-top: 24px;
-  border-top: 2px solid var(--gray-100);
+async function uploadReport() {
+    const nome = document.getElementById('report-name').value.trim();
+    const dados = document.getElementById('report-data').value.trim();
+    
+    if (!nome) return showToast('Dê um nome ao relatório', 'error');
+    if (!dados) return showToast('Cole os dados do Excel', 'error');
+    
+    const linhas = dados.split('\n').filter(l => l.trim());
+    const clientes = [];
+    
+    linhas.forEach(linha => {
+        const partes = linha.split('|').map(p => p.trim());
+        if (partes.length >= 5) {
+            clientes.push({
+                nome: partes[0],
+                cpf: partes[1] || '',
+                telefone: partes[2] || '',
+                data_simulacao: parseData(partes[3]),
+                valor: parseFloat(partes[4]?.replace(/\D/g, '')) || 0,
+                prazo: parseInt(partes[5]) || 80,
+                produto: partes[6] || 'Auto',
+                canal: partes[7] || 'App'
+            });
+        }
+    });
+    
+    if (clientes.length === 0) return showToast('Nenhum cliente encontrado nos dados', 'error');
+    
+    try {
+        const res = await fetch('/api/reports', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': Bearer ${currentToken}
+            },
+            body: JSON.stringify({ nome, clientes })
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok) {
+            showToast(${data.total} clientes processados!);
+            document.getElementById('report-name').value = '';
+            document.getElementById('report-data').value = '';
+            loadReports();
+            loadDashboard();
+        } else {
+            showToast(data.error || 'Erro ao processar', 'error');
+        }
+    } catch (err) {
+        showToast('Erro de conexão', 'error');
+    }
 }
-.resultado-form h4 { font-size: 16px; margin-bottom: 16px; }
-.resultado-options {
-  display: grid; grid-template-columns: repeat(2, 1fr);
-  gap: 10px; margin-bottom: 16px;
-}
-.resultado-option {
-  background: var(--white); border: 2px solid var(--gray-100);
-  border-radius: var(--radius-sm); padding: 14px;
-  text-align: center; cursor: pointer; transition: all 0.2s;
-}
-.resultado-option:hover { border-color: var(--primary); }
-.resultado-option.selected {
-  border-color: var(--primary); background: var(--primary-light);
-}
-.resultado-option .option-icon { font-size: 28px; margin-bottom: 4px; }
-.resultado-option .option-label { font-size: 13px; font-weight: 600; }
 
-.form-group { margin-bottom: 14px; }
-.form-group label {
-  display: block; font-size: 13px; font-weight: 600;
-  color: var(--gray-700); margin-bottom: 6px;
+async function openReport(reportId, reportName) {
+    currentReportId = reportId;
+    document.getElementById('clients-report-name').textContent = reportName;
+    showScreen('clients');
+    loadClients('all');
 }
-.form-group input, .form-group select, .form-group textarea {
-  width: 100%; padding: 12px; border: 2px solid var(--gray-100);
-  border-radius: var(--radius-sm); font-size: 15px; font-family: inherit;
-}
-.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
-  outline: none; border-color: var(--primary);
-}
-.checkbox-group { display: flex; gap: 16px; margin-bottom: 16px; }
-.checkbox-option { display: flex; align-items: center; gap: 6px; cursor: pointer; }
-.checkbox-option input { width: 20px; height: 20px; accent-color: var(--primary); }
-.btn-submit {
-  width: 100%; padding: 16px; background: var(--success); color: var(--white);
-  border: none; border-radius: var(--radius-sm); font-size: 16px;
-  font-weight: 700; cursor: pointer; transition: all 0.2s;
-}
-.btn-submit:hover { background: #1b5e20; }
 
-/* RANKING */
-.ranking-header {
-  background: linear-gradient(135deg, var(--accent) 0%, #e55a2b 100%);
-  color: var(--white); padding: 16px; border-radius: var(--radius);
-  margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;
+function backToClients() {
+    showScreen('clients');
 }
-.ranking-prize { font-size: 13px; font-weight: 600; }
-.ranking-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
-.ranking-item {
-  background: var(--white); border-radius: var(--radius-sm);
-  padding: 14px 16px; display: flex; align-items: center;
-  gap: 12px; box-shadow: var(--shadow);
-}
-.ranking-item.top-1 {
-  background: linear-gradient(90deg, #fff8e1 0%, var(--white) 100%);
-  border: 2px solid #ffc107;
-}
-.ranking-item.top-2 {
-  background: linear-gradient(90deg, #f5f5f5 0%, var(--white) 100%);
-  border: 2px solid #9e9e9e;
-}
-.ranking-item.top-3 {
-  background: linear-gradient(90deg, #fff3e0 0%, var(--white) 100%);
-  border: 2px solid #ff9800;
-}
-.ranking-position {
-  width: 36px; height: 36px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-weight: 700; font-size: 14px;
-  background: var(--gray-100); color: var(--gray-700);
-}
-.ranking-item.top-1 .ranking-position { background: #ffc107; color: var(--dark); }
-.ranking-item.top-2 .ranking-position { background: #9e9e9e; color: var(--white); }
-.ranking-item.top-3 .ranking-position { background: #ff9800; color: var(--white); }
-.ranking-info { flex: 1; }
-.ranking-name { font-weight: 600; font-size: 15px; }
-.ranking-stats { font-size: 12px; color: var(--gray-500); margin-top: 2px; }
-.ranking-tickets { font-size: 20px; font-weight: 700; color: var(--accent); }
 
-.ranking-rules {
-  background: var(--white); border-radius: var(--radius);
-  padding: 20px; box-shadow: var(--shadow);
+async function loadClients(filter) {
+    try {
+        const res = await fetch(/api/reports/${currentReportId}/clients, {
+            headers: { 'Authorization': Bearer ${currentToken} }
+        });
+        const clients = await res.json();
+        currentClients = clients;
+        
+        let filtered = clients;
+        if (filter === 'hoje') filtered = clients.filter(c => c.prioridade === 'hoje');
+        if (filter === 'semana') filtered = clients.filter(c => c.prioridade === 'semana');
+        if (filter === 'pendente') filtered = clients.filter(c => c.status === 'pendente');
+        
+        const container = document.getElementById('clients-list');
+        if (filtered.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <span>🔍</span>
+                    <p>Nenhum cliente neste filtro</p>
+                </div>
+            `;
+        } else {
+            container.innerHTML = filtered.map(c => `
+                <div class="client-card prioridade-${c.prioridade}" onclick="openClient(${c.id})">
+                    <div class="client-card-header">
+                        <span class="client-name">${c.nome}</span>
+                        <span class="client-score ${c.score >= 85 ? 'alto' : c.score >= 70 ? 'medio' : ''}">${c.score}</span>
+                    </div>
+                    <div class="client-info">
+                        <span class="client-badge badge-arquetipo">${c.arquetipo}</span>
+                        <span class="client-badge badge-prioridade-${c.prioridade}">${getPrioridadeLabel(c.prioridade)}</span>
+                    </div>
+                    <div class="client-info">
+                        <span>💰 ${formatCurrency(c.valor_simulado)}</span>
+                        <span>📅 ${c.prazo} meses</span>
+                        <span>📅 ${formatDateShort(c.data_simulacao)}</span>
+                    </div>
+                    <div class="client-phone">
+                        <span>📞</span>
+                        <span>${c.telefone || 'Sem telefone'}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelector([data-filter="${filter}"])?.classList.add('active');
+    } catch (err) {
+        console.error('Erro clients:', err);
+    }
 }
-.ranking-rules h4 { font-size: 14px; margin-bottom: 12px; color: var(--gray-700); }
-.ranking-rules ul { list-style: none; }
-.ranking-rules li {
-  padding: 8px 0; font-size: 14px; color: var(--gray-700);
-  border-bottom: 1px solid var(--gray-100);
-}
-.ranking-rules li:last-child { border-bottom: none; }
 
-/* TOAST */
-.toast {
-  position: fixed; bottom: 80px; left: 50%;
-  transform: translateX(-50%) translateY(100px);
-  background: var(--dark); color: var(--white);
-  padding: 14px 24px; border-radius: var(--radius-sm);
-  font-size: 14px; font-weight: 500; z-index: 1000;
-  transition: transform 0.3s ease; box-shadow: var(--shadow-lg);
+function filterClients(filter) {
+    loadClients(filter);
 }
-.toast.show { transform: translateX(-50%) translateY(0); }
 
-/* RESPONSIVE */
-@media (min-width: 768px) {
-  .stats-grid { grid-template-columns: repeat(4, 1fr); }
-  .app-nav {
-    position: static; box-shadow: none;
-    border-top: 1px solid var(--gray-100);
-  }
-  .content-screen { padding-bottom: 16px; }
+async function openClient(clientId) {
+    currentClientId = clientId;
+    
+    try {
+        const res = await fetch(/api/clients/${clientId}, {
+            headers: { 'Authorization': Bearer ${currentToken} }
+        });
+        const client = await res.json();
+        
+        const container = document.getElementById('client-detail-content');
+        const roteiro = client.roteiro || {};
+        
+        container.innerHTML = `
+            <div class="client-detail-header">
+                <h3>${client.nome}</h3>
+                <div class="client-detail-meta">
+                    <span>⭐ Score: ${client.score}</span>
+                    <span>🎯 ${client.arquetipo}</span>
+                    <span>💰 ${formatCurrency(client.valor_simulado)}</span>
+                    <span>📅 ${client.prazo} meses</span>
+                </div>
+            </div>
+            
+            <div class="client-detail-body">
+                <div class="roteiro-section">
+                    <h4>📱 Abertura (copie e cole no WhatsApp)</h4>
+                    <div class="roteiro-box">
+                        <p class="roteiro-text">${roteiro.abertura || 'Olá, sou do Banco do Brasil. Vi sua simulação de consórcio.'}</p>
+                        <button class="btn-copy" onclick="copyText(this)">Copiar</button>
+                    </div>
+                </div>
+                
+                <div class="roteiro-section">
+                    <h4>❓ Perguntas do Diagnóstico</h4>
+                    <div class="pergunta-box">
+                        <p>${roteiro.pergunta1 || 'Qual é o seu objetivo hoje?'}</p>
+                    </div>
+                    <div class="pergunta-box">
+                        <p>${roteiro.pergunta2 || 'Quando você gostaria de realizar isso?'}</p>
+                    </div>
+                </div>
+                
+                <div class="roteiro-section">
+                    <h4>🛡️ Se o cliente objetar</h4>
+                    <div class="objecao-box">
+                        <div class="objecao-label">Taxa alta</div>
+                        <p>${roteiro.objecaoTaxa || 'Vamos comparar o custo total de todas as opções.'}</p>
+                    </div>
+                    <div class="objecao-box">
+                        <div class="objecao-label">Vou pensar</div>
+                        <p>${roteiro.objecaoPensar || 'Claro, só para eu entender: o que falta para você se sentir seguro?'}</p>
+                    </div>
+                </div>
+                
+                <div class="resultado-form">
+                    <h4>✅ Registrar Resultado</h4>
+                    
+                    <div class="resultado-options">
+                        <div class="resultado-option" onclick="selectResultado('venda', this)">
+                            <div class="option-icon">💰</div>
+                            <div class="option-label">Venda Fechada</div>
+                        </div>
+                        <div class="resultado-option" onclick="selectResultado('follow-up', this)">
+                            <div class="option-icon">📅</div>
+                            <div class="option-label">Follow-up</div>
+                        </div>
+                        <div class="resultado-option" onclick="selectResultado('perdeu', this)">
+                            <div class="option-icon">❌</div>
+                            <div class="option-label">Não Vendeu</div>
+                        </div>
+                        <div class="resultado-option" onclick="selectResultado('nao-atendeu', this)">
+                            <div class="option-icon">📵</div>
+                            <div class="option-label">Não Atendeu</div>
+                        </div>
+                    </div>
+                    
+                    <div id="form-venda" class="form-extra hidden">
+                        <div class="form-group">
+                            <label>Valor da venda</label>
+                            <input type="text" id="valor-venda" placeholder="R$ 80.000">
+                        </div>
+                    </div>
+                    
+                    <div id="form-perdeu" class="form-extra hidden">
+                        <div class="form-group">
+                            <label>Por que não vendeu?</label>
+                            <select id="motivo-perda">
+                                <option value="">Selecione...</option>
+                                <option value="taxa">Taxa alta</option>
+                                <option value="pensar">Vou pensar</option>
+                                <option value="promocao">Vou esperar promoção</option>
+                                <option value="concorrencia">Optou pela concorrência</option>
+                                <option value="desistiu">Desistiu do consórcio</option>
+                                <option value="outro">Outro</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="checkbox-group">
+                        <label class="checkbox-option">
+                            <input type="radio" name="usou-roteiro" value="sim" checked>
+                            <span>✅ Usei o roteiro</span>
+                        </label>
+                        <label class="checkbox-option">
+                            <input type="radio" name="usou-roteiro" value="adaptado">
+                            <span>🔄 Adaptei</span>
+                        </label>
+                        <label class="checkbox-option">
+                            <input type="radio" name="usou-roteiro" value="nao">
+                            <span>❌ Não usei</span>
+                        </label>
+                    </div>
+                    
+                    <button onclick="submitResultado()" class="btn-submit">
+                        Confirmar Resultado
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        showScreen('client-detail');
+    } catch (err) {
+        console.error('Erro client detail:', err);
+    }
 }
+
+let selectedResultado = null;
+
+function selectResultado(resultado, el) {
+    selectedResultado = resultado;
+    document.querySelectorAll('.resultado-option').forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+    
+    document.querySelectorAll('.form-extra').forEach(f => f.classList.add('hidden'));
+    if (resultado === 'venda') document.getElementById('form-venda')?.classList.remove('hidden');
+    if (resultado === 'perdeu') document.getElementById('form-perdeu')?.classList.remove('hidden');
+}
+
+async function submitResultado() {
+    if (!selectedResultado) return showToast('Selecione um resultado', 'error');
+    
+    const usouRoteiro = document.querySelector('input[name="usou-roteiro"]:checked')?.value || 'sim';
+    const valorVenda = document.getElementById('valor-venda')?.value?.replace(/\D/g, '');
+    const motivoPerda = document.getElementById('motivo-perda')?.value;
+    
+    try {
+        const res = await fetch(/api/clients/${currentClientId}/result, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': Bearer ${currentToken}
+            },
+            body: JSON.stringify({
+                resultado: selectedResultado,
+                valor_venda: valorVenda ? parseFloat(valorVenda) : null,
+                motivo_perda: motivoPerda,
+                usou_roteiro: usouRoteiro
+            })
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok) {
+            showToast(✅ +${data.tickets} tickets!);
+            loadDashboard();
+            backToClients();
+        } else {
+            showToast(data.error || 'Erro ao registrar', 'error');
+        }
+    } catch (err) {
+        showToast('Erro de conexão', 'error');
+    }
+}
+
+function copyText(btn) {
+    const text = btn.parentElement.querySelector('.roteiro-text').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+        btn.textContent = 'Copiado!';
+        setTimeout(() => btn.textContent = 'Copiar', 2000);
+    });
+}
+
+async function loadRanking() {
+    try {
+        const res = await fetch('/api/dashboard', {
+            headers: { 'Authorization': Bearer ${currentToken} }
+        });
+        const data = await res.json();
+        
+        const container = document.getElementById('ranking-list');
+        if (data.ranking && data.ranking.length > 0) {
+            container.innerHTML = data.ranking.map((r, i) => `
+                <div class="ranking-item ${i === 0 ? 'top-1' : i === 1 ? 'top-2' : i === 2 ? 'top-3' : ''}">
+                    <div class="ranking-position">${r.posicao || i + 1}</div>
+                    <div class="ranking-info">
+                        <div class="ranking-name">${r.nome}</div>
+                        <div class="ranking-stats">${r.vendas || 0} vendas • ${r.contactados || 0} contactados</div>
+                    </div>
+                    <div class="ranking-tickets">${r.tickets}</div>
+                </div>
+            `).join('');
+        } else {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <span>🏆</span>
+                    <p>Ranking vazio</p>
+                    <small>Seja o primeiro a registrar atendimentos!</small>
+                </div>
+            `;
+        }
+    } catch (err) {
+        console.error('Erro ranking:', err);
+    }
+}
+
+function formatDate(dateStr) {
+    if (!dateStr) return '-';
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('pt-BR');
+}
+
+function formatDateShort(dateStr) {
+    if (!dateStr) return '-';
+    const d = new Date(dateStr);
+    return ${d.getDate()}/${d.getMonth() + 1};
+}
+
+function formatCurrency(value) {
+    if (!value) return 'R$ 0';
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+}
+
+function getPrioridadeLabel(p) {
+    const labels = { hoje: 'Ligar HOJE', semana: 'Esta semana', mes: 'Este mês', baixa: 'Baixa' };
+    return labels[p] || p;
+}
+
+function parseData(dataStr) {
+    if (!dataStr) return new Date().toISOString().split('T')[0];
+    const partes = dataStr.split(/[\/\-]/);
+    if (partes.length === 3) {
+        if (partes[2].length === 4) {
+            return ${partes[2]}-${partes[1].padStart(2, '0')}-${partes[0].padStart(2, '0')};
+        }
+    }
+    return dataStr;
+}
+
+function showToast(message, type = 'success') {
+    const toast = document.getElementById('toast');
+    toast.text
